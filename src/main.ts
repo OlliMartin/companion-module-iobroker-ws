@@ -12,12 +12,13 @@ import { EntitySubscriptions } from './state.js'
 import debounceFn, { DebouncedFunction } from 'debounce-fn'
 
 import { FeedbackId } from './feedback.js'
+import { IobPushApi } from './push-events.js'
 
 function isValidIobObject(obj?: ioBroker.Object | null): obj is ioBroker.Object {
 	return obj !== null && obj !== undefined
 }
 
-export class ModuleInstance extends InstanceBase<ModuleConfig> {
+export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPushApi {
 	config!: ModuleConfig // Setup in init()
 
 	private readonly entitySubscriptions: EntitySubscriptions
@@ -47,6 +48,37 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.entitySubscriptions = new EntitySubscriptions(this.onSubscriptionChange)
 
 		this.onStateValueChange = this.onStateValueChange.bind(this)
+	}
+
+	private ensureClient(client: Connection | null): client is Connection {
+		return client !== null && this.connected
+	}
+
+	public async toggleState(iobId: string): Promise<void> {
+		this.log('debug', `Toggled state ${iobId}.`)
+
+		if (!this.ensureClient(this.client)) {
+			return
+		}
+
+		const isBoolState = (state: ioBroker.Object | null | undefined): boolean => {
+			return !!state && state.common.type === 'boolean'
+		}
+
+		const oldState = await this.client.getObject(iobId)
+
+		if (!isBoolState(oldState)) {
+			return
+		}
+
+		const oldVal = await this.client.getState(iobId)
+
+		if (!oldVal || (oldVal.val !== true && oldVal.val !== false)) {
+			return
+		}
+
+		const newVal = !oldVal.val
+		await this.client.setState(iobId, newVal)
 	}
 
 	public checkFeedbacks(...feedbackTypes: FeedbackId[]): void {
@@ -83,7 +115,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		)
 
 		if (!!this.iobObjectDetails && this.iobObjectDetails.length > 0) {
-			this.updateActions()
+			this.updateActions(this.iobObjectDetails)
 			this.updateFeedbacks(this.iobObjectDetails)
 		}
 
@@ -222,8 +254,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		return GetConfigFields()
 	}
 
-	updateActions(): void {
-		UpdateActions(this)
+	updateActions(iobObjects: ioBroker.Object[]): void {
+		UpdateActions(this, this, iobObjects)
 	}
 
 	updateFeedbacks(iobObjects: ioBroker.Object[]): void {

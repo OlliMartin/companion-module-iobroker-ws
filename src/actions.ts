@@ -1,21 +1,14 @@
 import type { ModuleInstance } from './main.js'
+import { ToggleStatePicker } from './choices.js'
+import { IobPushApi } from './push-events.js'
 
-export function UpdateActions(self: ModuleInstance): void {
+export function UpdateActions(self: ModuleInstance, iobPushApi: IobPushApi, iobObjects: ioBroker.Object[]): void {
 	self.setActionDefinitions({
-		sample_action: {
-			name: 'My Second Action',
-			options: [
-				{
-					id: 'num',
-					type: 'number',
-					label: 'Test',
-					default: 5,
-					min: 0,
-					max: 100,
-				},
-			],
+		toggle: {
+			name: 'Toggle State',
+			options: [ToggleStatePicker(iobObjects, undefined)],
 			callback: async (event) => {
-				console.log('Hello world 1337!', event.options.num)
+				void iobPushApi.toggleState(String(event.options.entity_id))
 			},
 		},
 	})
