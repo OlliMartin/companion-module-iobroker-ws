@@ -5,6 +5,4 @@ package-lock.json
 /dist
 DEBUG-*
 .yarn/*
-!.yarn/releases
-!.yarn/releases/yarn-4.12.0.cjs
 /.vscode
