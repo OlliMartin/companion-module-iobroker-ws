@@ -4,5 +4,5 @@ package-lock.json
 /*.tgz
 /dist
 DEBUG-*
-.yarn/*
+/.yarn
 /.vscode
