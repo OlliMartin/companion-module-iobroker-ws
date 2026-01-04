@@ -1,4 +1,10 @@
-import { combineRgb, CompanionFeedbackBooleanEvent, CompanionFeedbackInfo } from '@companion-module/base'
+import {
+	combineRgb,
+	CompanionFeedbackBooleanEvent,
+	CompanionFeedbackInfo,
+	CompanionFeedbackValueEvent,
+	JsonValue,
+} from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 
 import { FeedbackId } from './feedback.js'
@@ -22,13 +28,18 @@ export function UpdateFeedbacks(
 		return false
 	}
 
+	const retrieveCurrentValue = (feedback: CompanionFeedbackValueEvent): JsonValue => {
+		const state = getState()
+		const entity = state.get(String(feedback.options.entity_id))
+
+		return entity ? entity.val : null
+	}
+
 	const subscribeEntityPicker = (feedback: CompanionFeedbackInfo): void => {
 		const entityId = String(feedback.options.entity_id)
 		entitySubscriptions.subscribe(entityId, feedback.id, feedback.feedbackId as FeedbackId)
 	}
 	const unsubscribeEntityPicker = (feedback: CompanionFeedbackInfo): void => {
-		console.log('Unsubscribe entity picker')
-
 		const entityId = String(feedback.options.entity_id)
 		entitySubscriptions.unsubscribe(entityId, feedback.id)
 	}
@@ -44,6 +55,15 @@ export function UpdateFeedbacks(
 				bgcolor: combineRgb(0, 255, 0),
 			},
 			callback: (feedback): boolean => checkEntityOnOffState(feedback),
+			subscribe: subscribeEntityPicker,
+			unsubscribe: unsubscribeEntityPicker,
+		},
+		ReadValueLocal: {
+			type: 'value',
+			name: 'Populate ioBroker state',
+			description: 'Sync a state value from ioBroker',
+			options: [EntityPicker(iobObjects, undefined)],
+			callback: retrieveCurrentValue,
 			subscribe: subscribeEntityPicker,
 			unsubscribe: unsubscribeEntityPicker,
 		},
