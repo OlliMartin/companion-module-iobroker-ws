@@ -1,5 +1,5 @@
 {
-	"name": "your-module-name",
+	"name": "iobroker-ws",
 	"version": "0.1.0",
 	"main": "dist/main.js",
 	"type": "module",
@@ -16,7 +16,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-your-module-name.git"
+		"url": "git+https://github.com/OlliMartin/companion-module-iobroker-ws.git"
 	},
 	"engines": {
 		"node": "^22.20",
@@ -30,6 +30,7 @@
 		"@types/node": "^22.19.3",
 		"eslint": "^9.39.2",
 		"husky": "^9.1.7",
+		"ioBroker/socket-client-backend": "^5.0.3",
 		"lint-staged": "^16.2.7",
 		"prettier": "^3.7.4",
 		"rimraf": "^6.1.2",

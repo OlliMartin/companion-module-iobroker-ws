@@ -1,16 +1,16 @@
 {
-	"id": "your-module-name",
-	"name": "your-module-name",
-	"shortname": "module-shortname",
-	"description": "A short one line description of your module",
+	"id": "iobroker-ws",
+	"name": "v",
+	"shortname": "iobroker-ws",
+	"description": "Control ioBroker states through websockets",
 	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/bitfocus/companion-module-your-module-name.git",
-	"bugs": "https://github.com/bitfocus/companion-module-your-module-name/issues",
+	"repository": "git+https://github.com/OlliMartin/companion-module-iobroker-ws.git",
+	"bugs": "https://github.com/OlliMartin/companion-module-iobroker-ws/issues",
 	"maintainers": [
 		{
-			"name": "Your name",
-			"email": "Your email"
+			"name": "Olli Martin",
+			"email": "oss@ollimart.in"
 		}
 	],
 	"runtime": {
@@ -20,7 +20,7 @@
 		"entrypoint": "../dist/main.js"
 	},
 	"legacyIds": [],
-	"manufacturer": "Your company",
-	"products": ["Your product"],
-	"keywords": []
+	"manufacturer": "ioBroker",
+	"products": ["ioBroker WebSockets"],
+	"keywords": ["ioBroker"]
 }
