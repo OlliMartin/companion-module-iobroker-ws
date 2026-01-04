@@ -4,6 +4,6 @@ package-lock.json
 /*.tgz
 /dist
 DEBUG-*
-.yarn/
+.yarn
 !.yarn/releases/yarn-4.12.0.cjs
 /.vscode
