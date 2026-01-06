@@ -5,4 +5,5 @@ export enum FeedbackId {
 	BinarySensorState = 'binary_sensor_state',
 	InputSelectState = 'input_select_state',
 	GroupOnState = 'group_on_state',
+	ReadLastUpdated = 'read_last_updated_timestamp',
 }

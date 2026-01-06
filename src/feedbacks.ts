@@ -35,6 +35,13 @@ export function UpdateFeedbacks(
 		return entity ? entity.val : null
 	}
 
+	const retrieveLastChangeTimestamp = (feedback: CompanionFeedbackValueEvent): JsonValue => {
+		const state = getState()
+		const entity = state.get(String(feedback.options.entity_id))
+
+		return typeof entity?.ts === 'number' ? entity.ts : null
+	}
+
 	const subscribeEntityPicker = (feedback: CompanionFeedbackInfo): void => {
 		const entityId = String(feedback.options.entity_id)
 		entitySubscriptions.subscribe(entityId, feedback.id, feedback.feedbackId as FeedbackId)
@@ -64,6 +71,15 @@ export function UpdateFeedbacks(
 			description: 'Sync a state value from ioBroker',
 			options: [EntityPicker(iobObjects, undefined)],
 			callback: retrieveCurrentValue,
+			subscribe: subscribeEntityPicker,
+			unsubscribe: unsubscribeEntityPicker,
+		},
+		[FeedbackId.ReadLastUpdated]: {
+			type: 'value',
+			name: 'Populate timestamp of last ioBroker state change',
+			description: 'Sync the timestamp of the last state change from ioBroker',
+			options: [EntityPicker(iobObjects, undefined)],
+			callback: retrieveLastChangeTimestamp,
 			subscribe: subscribeEntityPicker,
 			unsubscribe: unsubscribeEntityPicker,
 		},

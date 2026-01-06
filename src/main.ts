@@ -133,6 +133,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPus
 			// Ignore
 		}
 
+		if (this.touchLastChangedTimeout) {
+			clearInterval(this.touchLastChangedTimeout)
+		}
+
 		this.iobStateById = new Map<string, ioBroker.State>()
 
 		this.log('debug', `destroy ${this.id}`)
@@ -196,6 +200,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPus
 	}
 
 	async configUpdated(config: ModuleConfig): Promise<void> {
+		this.log('debug', 'Received config update.')
+
 		this.config = config
 
 		this.iobStateById = new Map<string, ioBroker.State>()
@@ -226,6 +232,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPus
 			this.client.unsubscribeState(this.subscribedEntityIds)
 		}
 
+		if (this.touchLastChangedTimeout) {
+			clearInterval(this.touchLastChangedTimeout)
+		}
+
 		this.subscribedEntityIds = this.entitySubscriptions.getEntityIds()
 
 		if (this.subscribedEntityIds.length === 0) {
@@ -235,6 +245,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPus
 		this.log('info', `Subscribing to ${this.subscribedEntityIds.length} ioBroker entities.`)
 
 		await this.client.subscribeState(this.subscribedEntityIds, false, this.onStateValueChange.bind(this))
+
+		this.touchLastChangedTimeout = setInterval(this.checkLastChangedFeedbacks.bind(this), 1_000)
+	}
+
+	private touchLastChangedTimeout: NodeJS.Timeout | null = null
+
+	private checkLastChangedFeedbacks() {
+		this.checkFeedbacks(FeedbackId.ReadLastUpdated)
+		this.subscribeFeedbacks()
 	}
 
 	async onStateValueChange(id: string, obj: ioBroker.State | null | undefined): Promise<void> {
