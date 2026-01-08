@@ -33,6 +33,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPus
 
 	private client: Connection | null = null
 
+	private touchLastChangedFeedbacksTimeout: NodeJS.Timeout | null = null
+
 	private readonly onSubscriptionChange: DebouncedFunction<[], Promise<void> | undefined>
 
 	constructor(internal: unknown) {
@@ -45,13 +47,17 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPus
 			after: true,
 		})
 
-		this.entitySubscriptions = new EntitySubscriptions(this.onSubscriptionChange)
+		this.entitySubscriptions = new EntitySubscriptions(this.onSubscriptionChange, this.getSubscribedIobIds.bind(this))
 
 		this.onStateValueChange = this.onStateValueChange.bind(this)
 	}
 
 	private ensureClient(client: Connection | null): client is Connection {
 		return client !== null && this.connected
+	}
+
+	private getSubscribedIobIds(): string[] {
+		return this.subscribedEntityIds ?? []
 	}
 
 	public async toggleState(iobId: string): Promise<void> {
@@ -133,13 +139,17 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPus
 			// Ignore
 		}
 
-		if (this.touchLastChangedTimeout) {
-			clearInterval(this.touchLastChangedTimeout)
-		}
+		this.clearTimeouts()
 
 		this.iobStateById = new Map<string, ioBroker.State>()
 
 		this.log('debug', `destroy ${this.id}`)
+	}
+
+	private clearTimeouts(): void {
+		if (this.touchLastChangedFeedbacksTimeout) {
+			clearInterval(this.touchLastChangedFeedbacksTimeout)
+		}
 	}
 
 	private async tryConnectAsync(): Promise<boolean> {
@@ -227,32 +237,35 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> implements IobPus
 			return
 		}
 
-		if (!!this.subscribedEntityIds && this.subscribedEntityIds.length > 0) {
-			this.log('debug', `Unsubscribing from ${this.subscribedEntityIds.length} iob entities.`)
-			this.client.unsubscribeState(this.subscribedEntityIds)
-		}
-
-		if (this.touchLastChangedTimeout) {
-			clearInterval(this.touchLastChangedTimeout)
-		}
-
+		const previousSubscribedEntityIds: string[] = this.subscribedEntityIds ?? []
 		this.subscribedEntityIds = this.entitySubscriptions.getEntityIds()
 
-		if (this.subscribedEntityIds.length === 0) {
+		const removed = previousSubscribedEntityIds.filter((eId) => !(this.subscribedEntityIds ?? []).includes(eId))
+		const added = (this.subscribedEntityIds ?? []).filter((eId) => !previousSubscribedEntityIds.includes(eId))
+
+		if (removed.length === 0 && added.length === 0) {
+			// this.log('debug', 'No changes to subscribed entities.')
 			return
 		}
 
+		this.log('debug', `Unsubscribing from ${this.subscribedEntityIds.length} iob entities.`)
+		this.client.unsubscribeState(this.subscribedEntityIds)
+
+		this.clearTimeouts()
+
 		this.log('info', `Subscribing to ${this.subscribedEntityIds.length} ioBroker entities.`)
+		this.log('debug', `Removed: [${removed.join(', ')}] Added: [${added.join(', ')}]`)
 
 		await this.client.subscribeState(this.subscribedEntityIds, false, this.onStateValueChange.bind(this))
 
-		this.touchLastChangedTimeout = setInterval(this.checkLastChangedFeedbacks.bind(this), 1_000)
+		this.touchLastChangedFeedbacksTimeout = setInterval(this.checkLastChangedFeedbacks.bind(this), 1_000)
 	}
-
-	private touchLastChangedTimeout: NodeJS.Timeout | null = null
 
 	private checkLastChangedFeedbacks() {
 		this.checkFeedbacks(FeedbackId.ReadLastUpdated)
+
+		// Workaround to receive feedback configuration changes,
+		// i.e. when the user changes the selected entity from the dropdown.
 		this.subscribeFeedbacks()
 	}
 
