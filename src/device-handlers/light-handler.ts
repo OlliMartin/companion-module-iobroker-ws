@@ -46,7 +46,7 @@ export class LightHandler implements IDeviceHandler {
 						type: 'dropdown',
 						id: 'channel_id',
 						label: 'Channel',
-						default: lightOptions[0].id ?? '',
+						default: lightOptions[0]?.id ?? '',
 						choices: lightOptions,
 					},
 					{
@@ -73,6 +73,8 @@ export class LightHandler implements IDeviceHandler {
 		const lightIds = Object.entries(typeByChannel).filter(([_, t]) => LightTypes.has(t))
 		const lightOptions: DropdownChoice[] = lightIds.map(([id, _]) => ({ id: id, label: id }))
 
+		this._logger.logDebug(`Discovered ${lightIds.length} 'light' devices.`)
+
 		return {
 			[FeedbackType.ReadColorOfLight]: {
 				type: 'value',
@@ -83,7 +85,7 @@ export class LightHandler implements IDeviceHandler {
 						type: 'dropdown',
 						id: 'channel_id',
 						label: 'Channel',
-						default: lightOptions[0].id ?? '',
+						default: lightOptions[0]?.id ?? '',
 						choices: lightOptions,
 					},
 				],

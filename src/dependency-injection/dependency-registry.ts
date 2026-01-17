@@ -12,6 +12,7 @@ import { SubscriptionManager } from '../subscription-manager.js'
 import { ActionConfiguration } from '../actions.js'
 import { FeedbackConfiguration } from '../feedbacks.js'
 import { DeviceHandlerRegistry } from '../device-handlers/device-handler-registry.js'
+import { DeviceClassifier } from '../device-classifier.js'
 
 @registry([
 	{ token: DependencyRegistry, useClass: DependencyRegistry, options: { lifecycle: Lifecycle.Singleton } },
@@ -32,7 +33,7 @@ import { DeviceHandlerRegistry } from '../device-handlers/device-handler-registr
 	{ token: DiTokens.SubscriptionManager, useClass: SubscriptionManager, options: { lifecycle: Lifecycle.Singleton } },
 
 	// Device Classification
-	// { token: DeviceClassifier, useClass: DeviceClassifier, options: { lifecycle: Lifecycle.Singleton } },
+	{ token: DeviceClassifier, useClass: DeviceClassifier, options: { lifecycle: Lifecycle.Singleton } },
 
 	// Module Configuration
 	{ token: DiTokens.ActionConfiguration, useClass: ActionConfiguration, options: { lifecycle: Lifecycle.Singleton } },

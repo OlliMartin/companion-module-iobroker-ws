@@ -29,7 +29,7 @@ export class DeviceClassifier {
 	}
 
 	public getTypesByChannel(): Record<string, Types> {
-		if (this.typeByDevice == null) {
+		if (!this.typeByDevice) {
 			return {}
 		}
 

@@ -37,7 +37,7 @@ export class ActionConfiguration implements IActionConfiguration {
 			)
 		}
 
-		cb(mergedConfiguration)
+		cb({ ...this.getDevModeActionDefinitions(), ...mergedConfiguration })
 	}
 
 	getDevModeActionDefinitions(): CompanionActionDefinitions {
