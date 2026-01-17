@@ -79,6 +79,7 @@ export class IoBrokerWsClient implements IioBrokerClient {
 				updateStatus(InstanceStatus.Ok, `Connected successfully in ${Date.now() - startMs}ms.`)
 				this.connected = true
 
+				// Config Updated Scenario
 				if (this.subscribedEntityIds) {
 					await this.subscribeStates(this.subscribedEntityIds)
 				}
@@ -89,7 +90,7 @@ export class IoBrokerWsClient implements IioBrokerClient {
 
 				const errorMsg = typeof err === 'string' ? err : JSON.stringify(err)
 
-				// eslint-disable-next-line
+				// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 				badConnection
 					? updateStatus(InstanceStatus.ConnectionFailure, errorMsg)
 					: updateStatus(InstanceStatus.UnknownError, errorMsg)
