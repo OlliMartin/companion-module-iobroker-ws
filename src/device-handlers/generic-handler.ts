@@ -12,6 +12,7 @@ import { DiTokens } from '../dependency-injection/tokens.js'
 import { EntityPicker, ToggleStatePicker } from '../choices.js'
 import { FeedbackType } from '../feedback-type.js'
 import { combineRgb } from '@companion-module/base'
+import { ActionType } from '../action-type.js'
 
 @injectable()
 export class GenericHandler implements IDeviceHandler {
@@ -33,7 +34,7 @@ export class GenericHandler implements IDeviceHandler {
 		const iobObjects = this._entityState.getObjects()
 
 		return {
-			toggle: {
+			[ActionType.Toggle]: {
 				name: 'Toggle State',
 				options: [ToggleStatePicker(iobObjects, undefined)],
 				callback: async (event) => {
