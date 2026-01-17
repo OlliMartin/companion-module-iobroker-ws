@@ -19,7 +19,7 @@ While developing the module, by using `yarn dev` the compiler will be run in wat
 This section gives an overview of the module architecture.
 
 The main goal is to build an easily extensible framework, where handling different _ioBroker device types_ becomes trivial;
-Essentially just writing a class that extends from `IDeviceHandler` and registering it in the [DI Container](https://github.com/microsoft/tsyringe).
+Essentially just writing a class that extends from [`IDeviceHandler`](./src/types.ts) and registering it in the [DI Container](https://github.com/microsoft/tsyringe).
 
 The `IDeviceHandler` MUST provide sufficient information to register actions and feedbacks, as well as executing the callbacks.
 
@@ -34,7 +34,7 @@ _which states should be subscribed to_. In contrast, it IS their responsibility 
 
 As an example, a `LightDeviceHandler` MUST be able to transform `RGB` color values into their respective Companion representation.
 
-:::mermaid
+```mermaid
 classDiagram
 
 class IDeviceHandler {
@@ -122,7 +122,7 @@ MainModule ..> FeedbackConfiguration : Invokes<br/>(Feedback Registration)
 IDeviceHandler ..> SubscriptionManager : Subscribes
 IDeviceHandler ..> IoBrokerState : Gets current value<br/>(On Feedback Callback)
 IDeviceHandler ..> DeviceClassifier : Gets Devices of Type<br/>(For Action/Feedback Generation)
-:::
+```
 
 **Note:** The above class diagram does not give _exact_ type names in favor of brevity. It indicates which type is meant
 by the short form of the respective NPM package. If no "namespace" is given, `@companion-module/base` is assumed.
