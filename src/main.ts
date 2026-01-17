@@ -25,7 +25,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	constructor(internal: unknown) {
 		super(internal)
 
-		this._diContainer = DependencyRegistry.CreateRegistry(this, () => this.config).Build()
+		this._diContainer = DependencyRegistry.CreateRegistry(this, this.getConfig.bind(this)).Build()
 	}
 
 	public checkFeedbacks(...feedbackTypes: FeedbackId[]): void {
@@ -36,21 +36,12 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.config = config
 
 		const wsClient = await this.getIobWsClient().connectAsync(this.updateStatus.bind(this))
-		wsClient.getSubscribedIds()
-
-		if (!wsClient.isConnected()) {
-			return
-		}
-
-		const iobObjects = await wsClient.loadIobObjectsAsync()
 		wsClient.setFeedbackCheckCb(this.checkFeedbacks.bind(this))
 
+		const iobObjects = await wsClient.loadIobObjectsAsync()
 		this._diContainer.resolve(DeviceClassifier).populateObjects(iobObjects)
 
-		this.updateActions()
-		this.updateFeedbacks()
-		this.updatePresets()
-		this.updateVariableDefinitions()
+		this.updateModuleConfigurations()
 
 		this.touchLastChangedFeedbacksTimeout = setInterval(this.checkLastChangedFeedbacks.bind(this), 1_000)
 
@@ -83,7 +74,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			return
 		}
 
-		await wsClient.disconnectAsync()
+		await wsClient.disconnectAsync(this.updateStatus.bind(this))
 	}
 
 	async configUpdated(config: ModuleConfig): Promise<void> {
@@ -91,23 +82,18 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 		this.config = config
 
+		this.getSubscriptionManager().clear()
 		await this.disconnectAsync()
 
-		this.getSubscriptionManager().clear()
-
-		const wsClient = await this.getIobWsClient().connectAsync(this.updateStatus.bind(this))
-
-		if (!wsClient.isConnected) {
-			this.log('debug', 'Either client is null or connected false. Stopping config update.')
-			return
-		}
-
-		this.log('debug', 'Subscribing feedbacks.')
-		this.subscribeFeedbacks()
+		await this.init(config)
 	}
 
 	private checkLastChangedFeedbacks() {
 		this.checkFeedbacks(FeedbackId.ReadLastUpdated)
+	}
+
+	getConfig(): ModuleConfig {
+		return this.config
 	}
 
 	getConfigFields(): SomeCompanionConfigField[] {
@@ -128,6 +114,13 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	updateVariableDefinitions(): void {
 		UpdateVariableDefinitions(this)
+	}
+
+	updateModuleConfigurations(): void {
+		this.updateActions()
+		this.updateFeedbacks()
+		this.updatePresets()
+		this.updateVariableDefinitions()
 	}
 
 	// DI ACCESSORS

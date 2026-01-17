@@ -68,7 +68,7 @@ updateFeedbacks(setFeedbackDefinitions: Action~CompanionFeedbackDefinitions~)
 
 class SubscriptionManager {
 <<Singleton>>
-subscribe(entityId: string, feedbackId: string, feedbackType: FeedbackType): void
+subscribe(entityId: string, feedbackId: string, feedbackType: FeedbackType)
 
     makeFeedbackCallback(callbackFn: Func~TIn, TOut~)
     makeDeviceFeedbackCallback(callbackFn: Func~TIn, TOut~)
@@ -119,7 +119,7 @@ MainModule ..> IoBrokerWsClient : Starts
 MainModule ..> ActionConfiguration : Invokes<br/>(Action Registration)
 MainModule ..> FeedbackConfiguration : Invokes<br/>(Feedback Registration)
 
-IDeviceHandler ..> SubscriptionManager : Subscribes
+IDeviceHandler ..> SubscriptionManager : Triggers Feedback Subscription
 IDeviceHandler ..> IoBrokerState : Gets current value<br/>(On Feedback Callback)
 IDeviceHandler ..> DeviceClassifier : Gets Devices of Type<br/>(For Action/Feedback Generation)
 ```
@@ -141,5 +141,3 @@ and present them in a multi-select style list.
 Furthermore `IDeviceHandler` instances MUST NOT generate actions/feedbacks/presets if there are no matching devices available
 on ioBroker site. If this requirement proves to be confusing for the end-user, a configuration switch SHOULD be added,
 which allows to hide actions etc. in case they have no targe devices.
-
-### Connection and State Management

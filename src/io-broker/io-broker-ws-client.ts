@@ -9,6 +9,8 @@ import { ModuleConfig } from '../config.js'
 import { isValidIobObject } from '../utils.js'
 import { FeedbackId } from '../feedback.js'
 
+import { setTimeout as delay } from 'node:timers/promises'
+
 @injectable({ token: DiTokens.SubscriptionState })
 export class IoBrokerWsClient {
 	private client: Connection | null = null
@@ -21,13 +23,16 @@ export class IoBrokerWsClient {
 
 	public constructor(
 		@inject(DiTokens.Logger) private readonly _logger: ILogger,
-		@inject(DiTokens.ModuleConfiguration) private readonly _config: ModuleConfig,
+		@inject(DiTokens.ModuleConfigurationAccessor) private readonly _configAccessor: () => ModuleConfig,
 		@inject(DiTokens.MutableState) private readonly _mutableState: IMutableState,
 		@inject(DiTokens.SubscriptionState) private readonly _subscriptionState: ISubscriptionState,
 	) {}
 
-	public async connectAsync(updateStatus: (status: InstanceStatus, msg?: string) => void): Promise<IoBrokerWsClient> {
-		await this.tryConnectAsync(updateStatus)
+	public async connectAsync(
+		updateStatus: (status: InstanceStatus, msg?: string) => void,
+		forceReconnect?: boolean,
+	): Promise<IoBrokerWsClient> {
+		await this.tryConnectAsync(updateStatus, forceReconnect)
 		return this
 	}
 
@@ -35,16 +40,32 @@ export class IoBrokerWsClient {
 		return this.connected
 	}
 
-	private async tryConnectAsync(updateStatus: (status: InstanceStatus, msg?: string) => void): Promise<boolean> {
+	private async tryConnectAsync(
+		updateStatus: (status: InstanceStatus, msg?: string) => void,
+		forceReconnect?: boolean,
+	): Promise<boolean> {
+		if (forceReconnect) {
+			this.connectPromise = null
+		}
+
+		let badConnection = false
+		const throwAfter = async (delayMs: number): Promise<boolean> => {
+			await delay(delayMs)
+			badConnection = true
+			// eslint-disable-next-line @typescript-eslint/only-throw-error
+			throw `Could not connect to host: '${this._configAccessor().host}' within ${delayMs / 1000} seconds.`
+		}
+
 		const connectInternal = async () => {
 			const startMs = Date.now()
 
-			updateStatus(InstanceStatus.Connecting, `Trying to connect to host: '${this._config.host}'.`)
+			const config = this._configAccessor()
+			updateStatus(InstanceStatus.Connecting, `Trying to connect to host: '${config.host}'.`)
 
 			this.client = new Connection({
-				protocol: this._config.protocol,
-				host: this._config.host,
-				port: this._config.port,
+				protocol: config.protocol,
+				host: config.host,
+				port: config.port,
 				doNotLoadAllObjects: true,
 				doNotLoadACL: true,
 				onLog: (_) => null,
@@ -52,7 +73,8 @@ export class IoBrokerWsClient {
 
 			try {
 				await this.client.startSocket()
-				await this.client.waitForFirstConnection()
+
+				await Promise.race([throwAfter(2_000), this.client.waitForFirstConnection()])
 
 				updateStatus(InstanceStatus.Ok, `Connected successfully in ${Date.now() - startMs}ms.`)
 				this.connected = true
@@ -63,9 +85,11 @@ export class IoBrokerWsClient {
 
 				const errorMsg = typeof err === 'string' ? err : JSON.stringify(err)
 
-				updateStatus(InstanceStatus.UnknownError, errorMsg)
+				// eslint-disable-next-line
+				badConnection
+					? updateStatus(InstanceStatus.ConnectionFailure, errorMsg)
+					: updateStatus(InstanceStatus.UnknownError, errorMsg)
 
-				this._logger.logError(`Connect failed: ${errorMsg}`)
 				this.connected = false
 
 				return false
@@ -79,7 +103,10 @@ export class IoBrokerWsClient {
 		}
 
 		this.connectPromise ??= connectInternal()
-		return await this.connectPromise
+
+		const result = await this.connectPromise
+		this._logger.logInfo(`Connection successful: ${result}`)
+		return result
 	}
 
 	public async loadIobObjectsAsync(): Promise<ioBroker.Object[]> {
@@ -115,13 +142,14 @@ export class IoBrokerWsClient {
 	}
 
 	private getObjectSubscriptions(): string[] {
-		const namespaces = this._config.additionalNamespaces
+		const config = this._configAccessor()
+		const namespaces = config.additionalNamespaces
 			.split(',')
 			.map((i) => i.trim())
 			.filter((i) => i.length > 0)
 			.map((i) => `${i}.*`)
 
-		if (this._config.loadAllAliases) {
+		if (config.loadAllAliases) {
 			namespaces.push('alias.*')
 		}
 
@@ -205,7 +233,8 @@ export class IoBrokerWsClient {
 	}
 
 	async onStateValueChange(id: string, obj: ioBroker.State | null | undefined): Promise<void> {
-		if (!obj || (this._config.ignoreNotAcknowledged && !obj.ack)) {
+		const config = this._configAccessor()
+		if (!obj || (config.ignoreNotAcknowledged && !obj.ack)) {
 			return
 		}
 
@@ -244,10 +273,12 @@ export class IoBrokerWsClient {
 		return client !== null && client.isConnected()
 	}
 
-	public async disconnectAsync(): Promise<void> {
+	public async disconnectAsync(updateStatus: (status: InstanceStatus, msg?: string) => void): Promise<void> {
 		if (!this.client || !this.connected) {
 			return
 		}
+
+		updateStatus(InstanceStatus.Disconnected)
 
 		try {
 			if (!!this.subscribedEntityIds && this.subscribedEntityIds.length > 0) {

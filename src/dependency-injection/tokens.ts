@@ -2,7 +2,7 @@ export const DiTokens = {
 	Module: 'module',
 
 	Logger: 'logger',
-	ModuleConfiguration: 'module-configuration',
+	ModuleConfigurationAccessor: 'module-configuration-accessor',
 
 	// State
 	State: 'read-only-state',

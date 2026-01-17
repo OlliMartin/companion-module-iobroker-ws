@@ -59,7 +59,7 @@ export class DependencyRegistry {
 		const childContainer = DependencyRegistry.Container.createChildContainer()
 
 		childContainer.register(DiTokens.Module, { useValue: module })
-		childContainer.register(DiTokens.ModuleConfiguration, { useFactory: configFactory })
+		childContainer.register(DiTokens.ModuleConfigurationAccessor, { useValue: configFactory })
 
 		return new DependencyRegistry(childContainer)
 	}
