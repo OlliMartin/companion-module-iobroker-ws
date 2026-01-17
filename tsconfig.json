@@ -3,6 +3,8 @@
 	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules/**"],
 	"compilerOptions": {
-		"types": ["node", "@iobroker/types" /* , "jest" ] // uncomment this if using jest */]
+		"types": ["node", "@iobroker/types" /* , "jest" ] // uncomment this if using jest */],
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true
 	}
 }

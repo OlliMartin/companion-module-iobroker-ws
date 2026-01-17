@@ -10,6 +10,8 @@
 		},
 		"module": "Node16",
 		"moduleResolution": "Node16",
-		"types": ["node", "@iobroker/types"]
+		"types": ["node", "@iobroker/types"],
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true
 	}
 }

@@ -1,6 +1,7 @@
 import {
 	combineRgb,
 	CompanionFeedbackBooleanEvent,
+	CompanionFeedbackDefinitions,
 	CompanionFeedbackValueEvent,
 	DropdownChoice,
 	JsonValue,
@@ -13,7 +14,16 @@ import { EntityPicker } from './choices.js'
 import { LightTypes } from './utils.js'
 import { DeviceClassifier } from './device-classifier.js'
 import { getColorDeviceAgnostic } from './type-handlers/color-handler.js'
-import { StateInfo } from './types.js'
+import { IFeedbackConfiguration, StateInfo } from './types.js'
+import { injectable } from 'tsyringe'
+import { DiTokens } from './dependency-injection/tokens.js'
+
+@injectable({ token: DiTokens.ActionConfiguration })
+export class FeedbackConfiguration implements IFeedbackConfiguration {
+	updateFeedbacks(cb: (actions: CompanionFeedbackDefinitions) => void): void {
+		cb({})
+	}
+}
 
 export function UpdateFeedbacks(
 	self: ModuleInstance,

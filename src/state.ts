@@ -105,26 +105,13 @@ export class EntitySubscriptions {
 		return EntitySubscriptions.wrapCallback(this.ensureDeviceSubscribed.bind(this), callbackFn)
 	}
 
-	public subscribe(entityId: string, feedbackId: string, type: FeedbackId): void {
+	public subscribe(entityId: string, feedbackId: string, feedbackType: FeedbackId): void {
 		let entries = this.data.get(entityId)
 		if (!entries) {
 			entries = new Map()
 			this.data.set(entityId, entries)
 		}
-		entries.set(feedbackId, type)
-
-		void this.raiseSubscriptionsChanged()
-	}
-	public unsubscribe(entityId: string, feedbackId: string): void {
-		const entries = this.data.get(entityId)
-
-		if (entries) {
-			entries.delete(feedbackId)
-
-			if (entries.size === 0) {
-				this.data.delete(entityId)
-			}
-		}
+		entries.set(feedbackId, feedbackType)
 
 		void this.raiseSubscriptionsChanged()
 	}

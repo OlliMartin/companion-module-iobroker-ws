@@ -26,7 +26,9 @@
 		"@companion-module/base": "~1.14.1",
 		"@iobroker/socket-client-backend": "^5.0.3",
 		"@iobroker/type-detector": "^5.0.9",
-		"debounce-fn": "^6.0.0"
+		"debounce-fn": "^6.0.0",
+		"reflect-metadata": "^0.2.2",
+		"tsyringe": "^4.10.0"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.5.0",

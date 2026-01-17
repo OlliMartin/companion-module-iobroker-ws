@@ -5,6 +5,16 @@ import { CompanionActionDefinitions, DropdownChoice } from '@companion-module/ba
 import { LightTypes } from './utils.js'
 import ChannelDetector from '@iobroker/type-detector'
 import { DeviceClassifier } from './device-classifier.js'
+import { IActionConfiguration } from './types.js'
+import { injectable } from 'tsyringe'
+import { DiTokens } from './dependency-injection/tokens.js'
+
+@injectable({ token: DiTokens.ActionConfiguration })
+export class ActionConfiguration implements IActionConfiguration {
+	updateActions(cb: (actions: CompanionActionDefinitions) => void): void {
+		cb({})
+	}
+}
 
 export function UpdateActions(
 	self: ModuleInstance,
