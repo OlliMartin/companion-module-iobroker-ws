@@ -11,6 +11,9 @@ export interface ModuleConfig {
 	traceLogs: boolean
 }
 
+/**
+ * Gets the configuration of the module's configuration UI.
+ */
 export function GetConfigFields(): SomeCompanionConfigField[] {
 	return [
 		{

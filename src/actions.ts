@@ -8,27 +8,35 @@ import { ActionType } from './action-type.js'
 
 @injectable({ token: DiTokens.ActionConfiguration })
 export class ActionConfiguration implements IActionConfiguration {
+	/**
+	 * Initializes a new instance of {@link ActionConfiguration}
+	 * @param _logger - A logger
+	 * @param _configAccessor - A delegate to retrieve the modules configuration
+	 * @param _deviceHandlers - A list of registered device handlers. Refer to {@link DeviceHandlerRegistry}
+	 * @param _iobClient - A ioBroker websocket client to interact with the backend
+	 */
 	constructor(
 		@inject(DiTokens.Logger) private readonly _logger: ILogger,
 		@inject(DiTokens.ModuleConfigurationAccessor) private readonly _configAccessor: () => ModuleConfig,
-		@injectAll(DiTokens.DeviceHandler) private readonly deviceHandlers: IDeviceHandler[],
+		@injectAll(DiTokens.DeviceHandler) private readonly _deviceHandlers: IDeviceHandler[],
 		@inject(DiTokens.IoBrokerClient) private readonly _iobClient: IioBrokerClient,
 	) {}
 
+	/** {@inheritDoc IActionConfiguration.updateActions} */
 	updateActions(cb: (actions: CompanionActionDefinitions) => void): void {
 		const startMs = Date.now()
 		this._logger.logDebug(
-			`Starting to gather definitions from ${this.deviceHandlers.length} device handlers: [${this.deviceHandlers.map((dh) => dh.getName()).join(', ')}]`,
+			`Starting to gather definitions from ${this._deviceHandlers.length} device handlers: [${this._deviceHandlers.map((dh) => dh.getName()).join(', ')}]`,
 		)
 
-		const handlerResults = this.deviceHandlers.map((dh) => dh.getActionDefinitions())
+		const handlerResults = this._deviceHandlers.map((dh) => dh.getActionDefinitions())
 		const handlerResultCount = handlerResults.reduce((prev, curr) => prev + Object.keys(curr).length, 0)
 
 		const mergedConfiguration = handlerResults.reduce((prev, curr) => ({ ...prev, ...curr }), {})
 		const mergedCount = Object.keys(mergedConfiguration).length
 
 		this._logger.logInfo(
-			`Discovered ${handlerResultCount} (after merge: ${mergedCount}) definitions across ${this.deviceHandlers.length} handlers in ${Date.now() - startMs}ms`,
+			`Discovered ${handlerResultCount} (after merge: ${mergedCount}) definitions across ${this._deviceHandlers.length} handlers in ${Date.now() - startMs}ms`,
 		)
 
 		if (handlerResultCount !== mergedCount) {
@@ -40,7 +48,7 @@ export class ActionConfiguration implements IActionConfiguration {
 		cb({ ...this.getDevModeActionDefinitions(), ...mergedConfiguration })
 	}
 
-	getDevModeActionDefinitions(): CompanionActionDefinitions {
+	private getDevModeActionDefinitions(): CompanionActionDefinitions {
 		const config = this._configAccessor()
 		if (!config.developmentMode) {
 			return {}

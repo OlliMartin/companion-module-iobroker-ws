@@ -1,6 +1,10 @@
 import type { ModuleInstance } from './main.js'
 import { CompanionPresetDefinitions, combineRgb } from '@companion-module/base'
 
+/**
+ * Populates the module's presets.
+ * @param self - A reference to the module instance
+ */
 export function UpdatePresets(self: ModuleInstance): void {
 	const presets: CompanionPresetDefinitions = {}
 

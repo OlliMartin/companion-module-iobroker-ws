@@ -17,6 +17,13 @@ export const LightTypes: Set<Types> = new Set<Types>([Types.hue, Types.cie, Type
 
 @injectable()
 export class LightHandler implements IDeviceHandler {
+	/**
+	 * Initializes a new instance of {@link LightHandler}
+	 * @param _logger - A logger
+	 * @param _subscriptionManager - The subscription manager used to construct feedback callbacks
+	 * @param _deviceClassifier - The device classifier providing device mappings
+	 * @param _colorHandler - The color handler to map color values to and from the companion format to RGB, HUE, etc.
+	 */
 	constructor(
 		@inject(DiTokens.Logger) private readonly _logger: ILogger,
 		@inject(DiTokens.SubscriptionManager) private readonly _subscriptionManager: ISubscriptionManager,
@@ -24,13 +31,17 @@ export class LightHandler implements IDeviceHandler {
 		@inject(ColorHandler) private readonly _colorHandler: ColorHandler,
 	) {}
 
+	/** {@inheritDoc IDeviceHandler.getName} */
 	getName(): string {
 		return 'LightHandler'
 	}
 
+	/** {@inheritDoc IDeviceHandler.getHandledTypes} */
 	getHandledTypes(): Types[] {
 		return [Types.rgb]
 	}
+
+	/** {@inheritDoc IDeviceHandler.getActionDefinitions} */
 	getActionDefinitions(): CompanionActionDefinitions {
 		const typeByChannel = this._deviceClassifier.getTypesByChannel()
 
@@ -66,6 +77,8 @@ export class LightHandler implements IDeviceHandler {
 			},
 		}
 	}
+
+	/** {@inheritDoc IDeviceHandler.getFeedbackDefinitions} */
 	getFeedbackDefinitions(): CompanionFeedbackDefinitions {
 		const typeByChannel = this._deviceClassifier.getTypesByChannel()
 

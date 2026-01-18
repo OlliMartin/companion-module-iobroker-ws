@@ -32,6 +32,11 @@ function EntityOptions(iobObjects: ioBroker.Object[], prefix: string | undefined
 		})
 }
 
+/**
+ * Creates an input selector (dropdown) over all provided ioBroker objects.
+ * @param iobObjects - The ioBroker objects to use
+ * @param prefix - Optional. Prefix to filter object ids (full-tree form) for
+ */
 export function EntityPicker(iobObjects: ioBroker.Object[], prefix: string | undefined): CompanionInputFieldDropdown {
 	const choices = EntityOptions(iobObjects, prefix)
 
@@ -44,6 +49,11 @@ export function EntityPicker(iobObjects: ioBroker.Object[], prefix: string | und
 	}
 }
 
+/**
+ * Creates an input selector (dropdown) over all ioBroker objects that have a `boolean` type and are writeable.
+ * @param iobObjects - The ioBroker objects to use
+ * @param prefix - Optional. Prefix to filter object ids (full-tree form) for
+ */
 export function ToggleStatePicker(
 	iobObjects: ioBroker.Object[],
 	prefix: string | undefined,

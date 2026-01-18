@@ -16,20 +16,29 @@ import { ActionType } from '../action-type.js'
 
 @injectable()
 export class GenericHandler implements IDeviceHandler {
+	/**
+	 Initializes a new instance of {@link GenericHandler}
+	 * @param _entityState - The local (cached) ioBroker state (read-only)
+	 * @param _subscriptionManager - The subscription manager used to construct feedback callbacks
+	 * @param _iobClient - A ioBroker websocket client to interact with the backend
+	 */
 	constructor(
 		@inject(DiTokens.State) private readonly _entityState: IEntityState,
 		@inject(DiTokens.SubscriptionManager) private readonly _subscriptionManager: ISubscriptionManager,
 		@inject(DiTokens.IoBrokerClient) private readonly _iobClient: IioBrokerClient,
 	) {}
 
+	/** {@inheritDoc IDeviceHandler.getName} */
 	getName(): string {
 		return 'GenericHandler'
 	}
 
+	/** {@inheritDoc IDeviceHandler.getHandledTypes} */
 	getHandledTypes(): Types[] {
 		return [Types.unknown]
 	}
 
+	/** {@inheritDoc IDeviceHandler.getActionDefinitions} */
 	public getActionDefinitions(): CompanionActionDefinitions {
 		const iobObjects = this._entityState.getObjects()
 
@@ -44,6 +53,7 @@ export class GenericHandler implements IDeviceHandler {
 		}
 	}
 
+	/** {@inheritDoc IDeviceHandler.getFeedbackDefinitions} */
 	public getFeedbackDefinitions(): CompanionFeedbackDefinitions {
 		const iobObjects = this._entityState.getObjects()
 

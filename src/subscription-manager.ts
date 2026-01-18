@@ -9,30 +9,65 @@ import debounceFn, { DebouncedFunction } from 'debounce-fn'
 
 @injectable()
 export class SubscriptionManager implements ISubscriptionManager {
-	private readonly _logger: ILogger
-	private readonly _wsClient: IoBrokerWsClient
-	private readonly _deviceClassifier: DeviceClassifier
-	private readonly _subscriptionState: ISubscriptionState
-
 	private readonly onSubscriptionChange: DebouncedFunction<[feedbackType?: FeedbackType], Promise<void> | undefined>
 
+	/**
+	 * Initializes a new instance of {@link SubscriptionManager}
+	 * @param _logger - A logger
+	 * @param _wsClient - A ioBroker websocket client to interact with the backend
+	 * @param _deviceClassifier - The device classifier providing device mappings
+	 * @param _subscriptionState - The subscription state used to track feedbacks
+	 */
 	constructor(
-		@inject(DiTokens.Logger) logger: ILogger,
-		@inject(IoBrokerWsClient) wsClient: IoBrokerWsClient,
-		@inject(DeviceClassifier) deviceClassifier: DeviceClassifier,
-		@inject(DiTokens.SubscriptionState) subscriptionState: ISubscriptionState,
+		@inject(DiTokens.Logger) private readonly _logger: ILogger,
+		@inject(IoBrokerWsClient) private readonly _wsClient: IoBrokerWsClient,
+		@inject(DeviceClassifier) private readonly _deviceClassifier: DeviceClassifier,
+		@inject(DiTokens.SubscriptionState) private readonly _subscriptionState: ISubscriptionState,
 	) {
-		this._logger = logger
-		this._wsClient = wsClient
-		this._deviceClassifier = deviceClassifier
-		this._subscriptionState = subscriptionState
-
 		this.onSubscriptionChange = debounceFn(this.subscribeToIobStates.bind(this), {
 			wait: 10,
 			maxWait: 50,
 			before: false,
 			after: true,
 		})
+	}
+
+	// Refer to https://github.com/bitfocus/companion/issues/3879
+	// and: https://github.com/bitfocus/companion-module-base/wiki/Subscribe-unsubscribe-flow
+	// Since subscribe is not called by option change by design, we wrap the call to the callback function
+	// and check if a unknown entity is requested.
+	// If this is the case, we update the iob subscription in main, which will immediately request the current value.
+	// This will in turn trigger the checkFeedback function so that the value shows up nearly immediately (minus the round-trips).
+	// NOTE: The implementation does not account for cleaning up of subscriptions that are obsolete.
+	// That's ok-ish for a first version, but should be revisited!
+	/** {@inheritDoc ISubscriptionManager.makeFeedbackCallback} */
+	public makeFeedbackCallback<TIn extends CompanionFeedbackInfo, TOut>(
+		callbackFn: (feedback: TIn) => TOut,
+	): (feedback: TIn) => TOut {
+		return SubscriptionManager.wrapCallback(this.ensurePlainSubscribed.bind(this), callbackFn)
+	}
+
+	/** {@inheritDoc ISubscriptionManager.makeDeviceFeedbackCallback} */
+	public makeDeviceFeedbackCallback<TIn extends CompanionFeedbackInfo, TOut>(
+		callbackFn: (feedback: TIn) => TOut,
+	): (feedback: TIn) => TOut {
+		return SubscriptionManager.wrapCallback(this.ensureDeviceSubscribed.bind(this), callbackFn)
+	}
+
+	/** {@inheritDoc ISubscriptionManager.subscribe} */
+	public subscribe(entityId: string, feedbackId: string, feedbackType: FeedbackType): void {
+		let entries: Map<string, FeedbackType> | undefined = this._subscriptionState.get(entityId)
+		if (!entries) {
+			entries = new Map<string, FeedbackType>()
+			this._subscriptionState.set(entityId, entries)
+		}
+		entries.set(feedbackId, feedbackType)
+
+		if (feedbackType !== FeedbackType.ReadLastUpdated) {
+			this._logger.logTrace(`Subscribing feedback ${feedbackId} to entity ${entityId}.`)
+		}
+
+		void this.onSubscriptionChange(feedbackType)
 	}
 
 	private isEntitySubscribed(entityId: string): boolean {
@@ -75,26 +110,6 @@ export class SubscriptionManager implements ISubscriptionManager {
 		}
 	}
 
-	// Refer to https://github.com/bitfocus/companion/issues/3879
-	// and: https://github.com/bitfocus/companion-module-base/wiki/Subscribe-unsubscribe-flow
-	// Since subscribe is not called by option change by design, we wrap the call to the callback function
-	// and check if a unknown entity is requested.
-	// If this is the case, we update the iob subscription in main, which will immediately request the current value.
-	// This will in turn trigger the checkFeedback function so that the value shows up nearly immediately (minus the round-trips).
-	// NOTE: The implementation does not account for cleaning up of subscriptions that are obsolete.
-	// That's ok-ish for a first version, but should be revisited!
-	public makeFeedbackCallback<TIn extends CompanionFeedbackInfo, TOut>(
-		callbackFn: (feedback: TIn) => TOut,
-	): (feedback: TIn) => TOut {
-		return SubscriptionManager.wrapCallback(this.ensurePlainSubscribed.bind(this), callbackFn)
-	}
-
-	public makeDeviceFeedbackCallback<TIn extends CompanionFeedbackInfo, TOut>(
-		callbackFn: (feedback: TIn) => TOut,
-	): (feedback: TIn) => TOut {
-		return SubscriptionManager.wrapCallback(this.ensureDeviceSubscribed.bind(this), callbackFn)
-	}
-
 	private static wrapCallback<TIn extends CompanionFeedbackInfo, TOut>(
 		preCallbackFn: (feedback: TIn) => void,
 		callbackFn: (feedback: TIn) => TOut,
@@ -128,20 +143,5 @@ export class SubscriptionManager implements ISubscriptionManager {
 		this._logger.logDebug(`Removed: [${removed.join(', ')}] Added: [${added.join(', ')}]`)
 
 		await this._wsClient.subscribeStates(subscribedIds)
-	}
-
-	public subscribe(entityId: string, feedbackId: string, feedbackType: FeedbackType): void {
-		let entries: Map<string, FeedbackType> | undefined = this._subscriptionState.get(entityId)
-		if (!entries) {
-			entries = new Map<string, FeedbackType>()
-			this._subscriptionState.set(entityId, entries)
-		}
-		entries.set(feedbackId, feedbackType)
-
-		if (feedbackType !== FeedbackType.ReadLastUpdated) {
-			this._logger.logTrace(`Subscribing feedback ${feedbackId} to entity ${entityId}.`)
-		}
-
-		void this.onSubscriptionChange(feedbackType)
 	}
 }

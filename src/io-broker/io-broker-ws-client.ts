@@ -19,6 +19,13 @@ export class IoBrokerWsClient implements IioBrokerClient {
 
 	private connected: boolean = false
 
+	/**
+	 * Initializes a new instance of {@link IoBrokerWsClient}
+	 * @param _logger - A logger
+	 * @param _configAccessor - A delegate to retrieve the modules configuration
+	 * @param _mutableState - The local (cached) ioBroker state (writeable)
+	 * @param _subscriptionState - The subscription state used to track feedbacks
+	 */
 	public constructor(
 		@inject(DiTokens.Logger) private readonly _logger: ILogger,
 		@inject(DiTokens.ModuleConfigurationAccessor) private readonly _configAccessor: () => ModuleConfig,
@@ -26,6 +33,11 @@ export class IoBrokerWsClient implements IioBrokerClient {
 		@inject(DiTokens.SubscriptionState) private readonly _subscriptionState: ISubscriptionState,
 	) {}
 
+	/**
+	 * Attempts to connect to the configure ioBroker websocket server.
+	 * @param updateStatus - A delegate to update the companion module {@link InstanceStatus}
+	 * @param forceReconnect - [Flag] If `true` is provided a potentially running connection process is not reused and a new websocket client is created
+	 */
 	public async connectAsync(
 		updateStatus: (status: InstanceStatus, msg?: string) => void,
 		forceReconnect?: boolean,
@@ -34,6 +46,9 @@ export class IoBrokerWsClient implements IioBrokerClient {
 		return this
 	}
 
+	/**
+	 * Gets a flag indicating whether the underlying websocket client is successfully connected to the ioBroker server.
+	 */
 	public isConnected(): boolean {
 		return this.connected
 	}
@@ -112,6 +127,9 @@ export class IoBrokerWsClient implements IioBrokerClient {
 		return result
 	}
 
+	/**
+	 * Loads all ioBroker objects from the remote server and stores them in the {@link IMutableState}.
+	 */
 	public async loadIobObjectsAsync(): Promise<ioBroker.Object[]> {
 		if (!this.ensureClient(this.client)) {
 			return []
@@ -164,6 +182,146 @@ export class IoBrokerWsClient implements IioBrokerClient {
 		return namespaces
 	}
 
+	/**
+	 * Configures the underlying websocket client to subscribe to all provided state identifiers.
+	 * @param stateIds - The state identifiers (ioBroker fully-qualified ids) to subscribe to
+	 * @remarks The {@link IoBrokerWsClient} will store a copy of the subscription ids locally to reference them later. See {@link getSubscribedIds}
+	 */
+	public async subscribeStates(stateIds: string[]): Promise<void> {
+		if (!this.ensureClient(this.client)) {
+			this._logger.logWarning('Tried to subscribe to states, but client is not set or connected.')
+			return Promise.resolve()
+		}
+
+		this._logger.logInfo(`Subscribing to ${stateIds.length} states.`)
+		this.subscribedEntityIds = stateIds
+
+		await this.client.subscribeState(stateIds, false, this.onStateValueChange.bind(this))
+	}
+
+	private async onStateValueChange(id: string, obj: ioBroker.State | null | undefined): Promise<void> {
+		const config = this._configAccessor()
+		if (!obj || (config.ignoreNotAcknowledged && !obj.ack)) {
+			return
+		}
+
+		this._logger.logTrace(`Received event for id ${id} -> Value: ${obj.val ?? 'N/A'}`)
+
+		this._mutableState.getStates().set(id, obj)
+
+		const feedbackIds = this._subscriptionState.getFeedbackInstanceIds(id)
+
+		this.triggerFeedbackCheck(feedbackIds)
+	}
+
+	private triggerFeedbackCheck(feedbackIds: string[]): void {
+		this._logger.logTrace(`Triggering feedback check for [${feedbackIds.join(', ')}]`)
+
+		if (this.feedbackCheckCb) {
+			this.feedbackCheckCb(feedbackIds)
+		}
+	}
+
+	/**
+	 * Unsubscribes the underlying websocket client from all states
+	 */
+	public unsubscribeAll(): void {
+		if (!this.ensureClient(this.client)) {
+			return
+		}
+
+		const toUnsubscribe = this.getSubscribedIds()
+		this._logger.logDebug(`Unsubscribing from ${toUnsubscribe.length} iob entities.`)
+		this.client.unsubscribeState(toUnsubscribe)
+	}
+
+	/**
+	 * Retrieves a list of currently subscribed state identifiers (fully-qualified ioBroker ids)
+	 */
+	public getSubscribedIds(): string[] {
+		return this.subscribedEntityIds ?? []
+	}
+
+	/**
+	 * Sets the callback to trigger a feedback check by feedbackId
+	 * @param cb - The callback to invoke. Usually provided by the module instance
+	 * @remarks
+	 * This function is required to break the dependency cycle where the module instance would resolve this ws client,
+	 * but the ws client would have a dependency on the module if resolved via dependency injection.
+	 * It's a bit of a hack... but good enough.
+	 */
+	public setFeedbackCheckCb(cb: (feedbackIds: string[]) => void): void {
+		this.feedbackCheckCb = cb
+	}
+
+	private ensureClient(client: Connection | null): client is Connection {
+		return client !== null && client.isConnected()
+	}
+
+	/**
+	 * Disconnects the underlying websocket client and unsubscribes from all states.
+	 * @param updateStatus - A delegate to update the companion module {@link InstanceStatus}
+	 */
+	public async disconnectAsync(updateStatus: (status: InstanceStatus, msg?: string) => void): Promise<void> {
+		if (!this.client || !this.connected) {
+			return
+		}
+
+		updateStatus(InstanceStatus.Disconnected)
+
+		try {
+			if (!!this.subscribedEntityIds && this.subscribedEntityIds.length > 0) {
+				this._logger.logDebug(`Unsubscribing from ${this.subscribedEntityIds.length} iob entities.`)
+				this.client.unsubscribeState(this.subscribedEntityIds)
+			}
+		} catch (_err) {
+			// Ignored
+		}
+
+		this.client = null
+		this.connected = false
+	}
+
+	/* 
+		### IMPLEMENTATION OF IioBrokerClient ###
+		To be consumed by IDeviceHandler instances (or the like). 
+	*/
+	/** {@inheritDoc IioBrokerClient.getObject} */
+	public async getObject(iobId: string): Promise<ioBroker.Object | null> {
+		if (!this.ensureClient(this.client)) {
+			return null
+		}
+
+		const res = await this.client.getObject(iobId)
+		if (typeof res === 'undefined') {
+			return null
+		}
+
+		return res
+	}
+
+	/** {@inheritDoc IioBrokerClient.setState} */
+	public async setState(iobId: string, val: ioBroker.StateValue): Promise<void> {
+		if (!this.ensureClient(this.client)) {
+			return
+		}
+
+		return this.client.setState(iobId, val)
+	}
+
+	/** {@inheritDoc IioBrokerClient.sendMessage} */
+	public async sendMessage(instance: string, command: string, data?: unknown): Promise<void> {
+		if (!this.ensureClient(this.client)) {
+			return
+		}
+
+		const startMs = Date.now()
+		this._logger.logDebug(`Invoking command ${instance}::${command}.`)
+		await this.client.sendTo(instance, command, data)
+		this._logger.logInfo(`Finished command ${instance}::${command} in ${Date.now() - startMs}ms.`)
+	}
+
+	/** {@inheritDoc IioBrokerClient.toggleState} */
 	public async toggleState(iobId: string): Promise<void> {
 		this._logger.logDebug(`Toggling state ${iobId}.`)
 
@@ -189,114 +347,5 @@ export class IoBrokerWsClient implements IioBrokerClient {
 
 		const newVal = !oldVal.val
 		await this.client.setState(iobId, newVal)
-	}
-
-	public async getObject(iobId: string): Promise<ioBroker.Object | null> {
-		if (!this.ensureClient(this.client)) {
-			return null
-		}
-
-		const res = await this.client.getObject(iobId)
-		if (typeof res === 'undefined') {
-			return null
-		}
-
-		return res
-	}
-
-	public async setState(iobId: string, val: ioBroker.StateValue): Promise<void> {
-		if (!this.ensureClient(this.client)) {
-			return
-		}
-
-		return this.client.setState(iobId, val)
-	}
-
-	public async sendMessage(instance: string, command: string, data?: unknown): Promise<void> {
-		if (!this.ensureClient(this.client)) {
-			return
-		}
-
-		const startMs = Date.now()
-		this._logger.logDebug(`Invoking command ${instance}::${command}.`)
-		await this.client.sendTo(instance, command, data)
-		this._logger.logInfo(`Finished command ${instance}::${command} in ${Date.now() - startMs}ms.`)
-	}
-
-	public async subscribeStates(stateIds: string[]): Promise<void> {
-		if (!this.ensureClient(this.client)) {
-			this._logger.logWarning('Tried to subscribe to states, but client is not set or connected.')
-			return Promise.resolve()
-		}
-
-		this._logger.logInfo(`Subscribing to ${stateIds.length} states.`)
-		this.subscribedEntityIds = stateIds
-
-		await this.client.subscribeState(stateIds, false, this.onStateValueChange.bind(this))
-	}
-
-	async onStateValueChange(id: string, obj: ioBroker.State | null | undefined): Promise<void> {
-		const config = this._configAccessor()
-		if (!obj || (config.ignoreNotAcknowledged && !obj.ack)) {
-			return
-		}
-
-		this._logger.logTrace(`Received event for id ${id} -> Value: ${obj.val ?? 'N/A'}`)
-
-		this._mutableState.getStates().set(id, obj)
-
-		const feedbackIds = this._subscriptionState.getFeedbackInstanceIds(id)
-
-		this.triggerFeedbackCheck(feedbackIds)
-	}
-
-	private triggerFeedbackCheck(feedbackIds: string[]): void {
-		this._logger.logTrace(`Triggering feedback check for [${feedbackIds.join(', ')}]`)
-
-		if (this.feedbackCheckCb) {
-			this.feedbackCheckCb(feedbackIds)
-		}
-	}
-
-	public unsubscribeAll(): void {
-		if (!this.ensureClient(this.client)) {
-			return
-		}
-
-		const toUnsubscribe = this.getSubscribedIds()
-		this._logger.logDebug(`Unsubscribing from ${toUnsubscribe.length} iob entities.`)
-		this.client.unsubscribeState(toUnsubscribe)
-	}
-
-	public getSubscribedIds(): string[] {
-		return this.subscribedEntityIds ?? []
-	}
-
-	public setFeedbackCheckCb(cb: (feedbackIds: string[]) => void): void {
-		this.feedbackCheckCb = cb
-	}
-
-	private ensureClient(client: Connection | null): client is Connection {
-		return client !== null && client.isConnected()
-	}
-
-	public async disconnectAsync(updateStatus: (status: InstanceStatus, msg?: string) => void): Promise<void> {
-		if (!this.client || !this.connected) {
-			return
-		}
-
-		updateStatus(InstanceStatus.Disconnected)
-
-		try {
-			if (!!this.subscribedEntityIds && this.subscribedEntityIds.length > 0) {
-				this._logger.logDebug(`Unsubscribing from ${this.subscribedEntityIds.length} iob entities.`)
-				this.client.unsubscribeState(this.subscribedEntityIds)
-			}
-		} catch (_err) {
-			// Ignored
-		}
-
-		this.client = null
-		this.connected = false
 	}
 }

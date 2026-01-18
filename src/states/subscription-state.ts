@@ -5,24 +5,29 @@ import { DiTokens } from '../dependency-injection/tokens.js'
 
 @injectable()
 export class SubscriptionState implements ISubscriptionState {
-	private readonly _logger: ILogger
-
 	private readonly data: Map<string, Map<string, FeedbackType>>
 
-	constructor(@inject(DiTokens.Logger) logger: ILogger) {
-		this._logger = logger
+	/**
+	 * Initializes a new instance of {@link SubscriptionState}
+	 * @param _logger - A logger
+	 */
+	constructor(@inject(DiTokens.Logger) private readonly _logger: ILogger) {
 		this.data = new Map()
 
 		this._logger.logTrace('Initialized subscription state.')
 	}
 
-	get(entityId: string): Map<string, FeedbackType> | undefined {
+	/** {@inheritDoc ISubscriptionState.get} */
+	public get(entityId: string): Map<string, FeedbackType> | undefined {
 		return this.data.get(entityId)
 	}
-	set(entityId: string, entries: Map<string, FeedbackType>): void {
+
+	/** {@inheritDoc ISubscriptionState.set} */
+	public set(entityId: string, entries: Map<string, FeedbackType>): void {
 		this.data.set(entityId, entries)
 	}
 
+	/** {@inheritDoc ISubscriptionState.getFeedbackInstanceIds} */
 	public getFeedbackInstanceIds(entityId: string): string[] {
 		const entries = this.data.get(entityId)
 		if (entries) {
@@ -32,11 +37,8 @@ export class SubscriptionState implements ISubscriptionState {
 		}
 	}
 
+	/** {@inheritDoc ISubscriptionState.getEntityIds} */
 	public getEntityIds(): string[] {
 		return Array.from(this.data.keys())
-	}
-
-	public clear(): void {
-		this.data.clear()
 	}
 }

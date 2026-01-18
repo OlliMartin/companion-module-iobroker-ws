@@ -50,10 +50,19 @@ export class DependencyRegistry {
 
 	private _isBuilt: boolean = false
 
+	/**
+	 * Initializes a new instance of the {@link DependencyRegistry}.
+	 * @param childContainer - The base tsyringe container with module-agnostic dependencies already registered.
+	 */
 	constructor(childContainer: DependencyContainer) {
 		this._childContainer = childContainer
 	}
 
+	/**
+	 * Initializes the dependency injection container by registring the provided module instance and configuration callback.
+	 * @param module - The instance of the starting/running companion module
+	 * @param configFactory - A callback that returns the current module configuration
+	 */
 	public static CreateRegistry(
 		module: InstanceBase<ModuleConfig>,
 		configFactory: () => ModuleConfig,
@@ -66,6 +75,11 @@ export class DependencyRegistry {
 		return new DependencyRegistry(childContainer)
 	}
 
+	/**
+	 * Builds the dependency injection container with the provided module and configuration instances and returns it.
+	 * @remarks
+	 * This function may only be called once on any given registry.
+	 */
 	public Build(): DependencyContainer {
 		this.ThrowIffBuilt()
 		return this._childContainer
