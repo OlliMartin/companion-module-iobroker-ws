@@ -17,7 +17,7 @@ import { ActionType } from '../action-type.js'
 @injectable()
 export class GenericHandler implements IDeviceHandler {
 	/**
-	 Initializes a new instance of {@link GenericHandler}
+	 * Initializes a new instance of {@link GenericHandler}
 	 * @param _entityState - The local (cached) ioBroker state (read-only)
 	 * @param _subscriptionManager - The subscription manager used to construct feedback callbacks
 	 * @param _iobClient - A ioBroker websocket client to interact with the backend

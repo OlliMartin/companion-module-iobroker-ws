@@ -59,7 +59,7 @@ export class DependencyRegistry {
 	}
 
 	/**
-	 * Initializes the dependency injection container by registring the provided module instance and configuration callback.
+	 * Initializes the dependency injection container by registering the provided module instance and configuration callback.
 	 * @param module - The instance of the starting/running companion module
 	 * @param configFactory - A callback that returns the current module configuration
 	 */

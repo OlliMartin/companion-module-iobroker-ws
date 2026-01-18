@@ -8,7 +8,7 @@ import { DiTokens } from '../dependency-injection/tokens.js'
 @injectable()
 export class ColorHandler {
 	/**
-	 Initializes a new instance of {@link ColorHandler}
+	 * Initializes a new instance of {@link ColorHandler}
 	 * @param _logger - A logger
 	 * @param _iobClient - A ioBroker websocket client to interact with the backend
 	 */

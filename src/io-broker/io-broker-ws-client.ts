@@ -34,7 +34,7 @@ export class IoBrokerWsClient implements IioBrokerClient {
 	) {}
 
 	/**
-	 * Attempts to connect to the configure ioBroker websocket server.
+	 * Attempts to connect to the configured ioBroker websocket server.
 	 * @param updateStatus - A delegate to update the companion module {@link InstanceStatus}
 	 * @param forceReconnect - [Flag] If `true` is provided a potentially running connection process is not reused and a new websocket client is created
 	 */
