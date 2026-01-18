@@ -70,8 +70,11 @@ export class SubscriptionManager implements ISubscriptionManager {
 		void this.onSubscriptionChange(feedbackType)
 	}
 
-	private isEntitySubscribed(entityId: string): boolean {
-		return this._wsClient.getSubscribedIds().includes(entityId)
+	private isEntitySubscribed(entityId: string, feedbackId: string): boolean {
+		const wsClientSubscribed = this._wsClient.getSubscribedIds().includes(entityId)
+		const subscriptionExists = this._subscriptionState.get(entityId)?.has(feedbackId) ?? false
+
+		return wsClientSubscribed && subscriptionExists
 	}
 
 	private ensurePlainSubscribed<TIn extends CompanionFeedbackInfo>(feedback: TIn): void {
@@ -81,7 +84,7 @@ export class SubscriptionManager implements ISubscriptionManager {
 			return
 		}
 
-		if (this.isEntitySubscribed(entityId)) {
+		if (this.isEntitySubscribed(entityId, feedback.id)) {
 			return
 		}
 
@@ -99,7 +102,7 @@ export class SubscriptionManager implements ISubscriptionManager {
 		const missingStates = this._deviceClassifier
 			.getStatesByDevice(deviceId)
 			.filter((s) => !!s.id)
-			.filter((s) => !this.isEntitySubscribed(s.id))
+			.filter((s) => !this.isEntitySubscribed(s.id, feedback.id))
 
 		if (missingStates.length === 0) {
 			return

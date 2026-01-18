@@ -65,7 +65,7 @@ export class GenericHandler implements IDeviceHandler {
 				options: [EntityPicker(iobObjects, undefined)],
 				defaultStyle: {
 					color: combineRgb(0, 0, 0),
-					bgcolor: combineRgb(0, 0, 0),
+					bgcolor: combineRgb(255, 0, 0),
 				},
 				callback: this._subscriptionManager.makeFeedbackCallback(this.checkEntityOnOffState.bind(this)),
 			},
@@ -89,12 +89,14 @@ export class GenericHandler implements IDeviceHandler {
 	private checkEntityOnOffState(feedback: CompanionFeedbackBooleanEvent): boolean {
 		const state = this._entityState.getStates()
 		const entity = state.get(String(feedback.options.entity_id))
-		if (entity) {
-			const isOn = entity.val === true
-			const targetOn = !!feedback.options.state
-			return isOn === targetOn
+
+		if (!entity) {
+			return false
 		}
-		return false
+
+		const isOn = entity.val === true
+		const targetOn = !!feedback.options.state
+		return isOn === targetOn
 	}
 
 	private retrieveCurrentValue(feedback: CompanionFeedbackValueEvent): JsonValue {
