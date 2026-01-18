@@ -212,7 +212,7 @@ export interface IioBrokerClient {
 	getObject(iobId: string): Promise<ioBroker.Object | null>
 
 	/**
-	 * Sets the state of the given ioBroker state on the remove ioBroker server
+	 * Sets the state of the given ioBroker state on the remote ioBroker server
 	 * @param iobId - The fully qualified ioBroker object id
 	 * @param val - The value to set
 	 * @remarks

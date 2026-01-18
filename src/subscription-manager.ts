@@ -14,7 +14,7 @@ export class SubscriptionManager implements ISubscriptionManager {
 	/**
 	 * Initializes a new instance of {@link SubscriptionManager}
 	 * @param _logger - A logger
-	 * @param _wsClient - A ioBroker websocket client to interact with the backend
+	 * @param _wsClient - An ioBroker websocket client to interact with the backend
 	 * @param _deviceClassifier - The device classifier providing device mappings
 	 * @param _subscriptionState - The subscription state used to track feedbacks
 	 */

@@ -13,7 +13,7 @@ export function isValidIobObject(obj?: ioBroker.Object | null): obj is ioBroker.
  * @param stateValues -  All state values detected by the type-detector including their currently cached ioBroker state
  * @param name - The name of the type-detector state to look up.
  * @remarks
- * This function returns null in case there is no state present or the type of the actual does not match string.
+ * This function returns null in case there is no state present or the type of the actual value does not match string.
  */
 export function getStrByName(stateValues: StateInfo[], name: string): string | null {
 	const matches = stateValues.filter((sv) => sv.definition.name === name)
@@ -28,7 +28,7 @@ export function getStrByName(stateValues: StateInfo[], name: string): string | n
  * @param stateValues -  All state values detected by the type-detector including their currently cached ioBroker state
  * @param name - The name of the type-detector state to look up.
  * @remarks
- * This function returns null in case there is no state present or the type of the actual does not match number.
+ * This function returns null in case there is no state present or the type of the actual value does not match number.
  */
 export function getNumByName(stateValues: StateInfo[], name: string): number | null {
 	const matches = stateValues.filter((sv) => sv.definition.name === name)

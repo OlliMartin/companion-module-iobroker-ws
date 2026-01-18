@@ -10,7 +10,7 @@ export class ColorHandler {
 	/**
 	 * Initializes a new instance of {@link ColorHandler}
 	 * @param _logger - A logger
-	 * @param _iobClient - A ioBroker websocket client to interact with the backend
+	 * @param _iobClient - An ioBroker websocket client to interact with the backend
 	 */
 	constructor(
 		@inject(DiTokens.Logger) private readonly _logger: ILogger,

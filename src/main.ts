@@ -23,8 +23,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	private touchLastChangedFeedbacksTimeout: NodeJS.Timeout | null = null
 
 	/**
-	 * Initializes the ioBroker-ws instance. Called by the module base.
-	 * @param internal - Unknown parameter.
+	 * Constructs a new ModuleInstance. Called by the Companion module base.
+	 * @param internal - Internal parameter provided by the Companion module base; not intended to be set manually.
 	 */
 	constructor(internal: unknown) {
 		super(internal)
@@ -41,7 +41,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	/**
-	 * Wraps the base modules function by eliminating the spread operator, which seems to cause issues when used in callbacks.
+	 * Wraps the base module's function by eliminating the spread operator, which seems to cause issues when used in callbacks.
 	 * @param feedbackIds - The feedback IDs, not types, to verify model changes for.
 	 */
 	public checkFeedbacksByIdAsCb(feedbackIds: string[]): void {

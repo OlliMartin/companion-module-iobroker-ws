@@ -13,7 +13,7 @@ export class ActionConfiguration implements IActionConfiguration {
 	 * @param _logger - A logger
 	 * @param _configAccessor - A delegate to retrieve the modules configuration
 	 * @param _deviceHandlers - A list of registered device handlers. Refer to {@link DeviceHandlerRegistry}
-	 * @param _iobClient - A ioBroker websocket client to interact with the backend
+	 * @param _iobClient - An ioBroker websocket client to interact with the backend
 	 */
 	constructor(
 		@inject(DiTokens.Logger) private readonly _logger: ILogger,
